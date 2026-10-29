@@ -93,6 +93,40 @@ export interface DocFile {
   createdAt: number
 }
 
+export const PUBLISH_PLATFORMS = [
+  { id: 'wechat', name: '微信公众号', how: '推到草稿箱' },
+  { id: 'xiaohongshu', name: '小红书', how: '浏览器填好' },
+  { id: 'toutiao', name: '今日头条', how: '浏览器填好' },
+  { id: 'zhihu', name: '知乎', how: '浏览器填好' },
+] as const
+export type PlatformId = (typeof PUBLISH_PLATFORMS)[number]['id']
+
+export interface PublishResult {
+  status: 'running' | 'filled' | 'drafted' | 'error'
+  message: string
+  at: number
+}
+
+export interface Post {
+  id: string
+  title: string
+  content: string
+  summary: string
+  tags: string[]
+  cover?: string
+  status: 'pending' | 'approved'
+  platforms: PlatformId[]
+  source?: { title: string; url: string }
+  results: Partial<Record<PlatformId, PublishResult>>
+  createdAt: number
+  updatedAt: number
+}
+
+export interface PublishConfig {
+  wechat: { appId: string; author: string; openComment: boolean; hasSecret: boolean; secretHint: string }
+  browser: 'msedge' | 'chrome'
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -141,4 +175,19 @@ export const api = {
     request<DocJob>('/api/docs', { method: 'POST', body: JSON.stringify(body) }),
   cancelDoc: () => request<void>('/api/docs/cancel', { method: 'POST' }),
   docUrl: (file: string) => `/api/docs/file/${encodeURIComponent(file)}`,
+  posts: () => request<Post[]>('/api/posts'),
+  createPost: (p: Partial<Post>) => request<Post>('/api/posts', { method: 'POST', body: JSON.stringify(p) }),
+  updatePost: (id: string, patch: Partial<Post>) =>
+    request<Post>(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  removePost: (id: string) => request<void>(`/api/posts/${id}`, { method: 'DELETE' }),
+  publish: (id: string, platforms: PlatformId[]) =>
+    request<Post>(`/api/posts/${id}/publish`, { method: 'POST', body: JSON.stringify({ platforms }) }),
+  upload: (dataUrl: string) =>
+    request<{ name: string }>('/api/uploads', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
+  uploadUrl: (name: string) => `/api/uploads/${name}`,
+  publishConfig: () => request<PublishConfig>('/api/publish/config'),
+  savePublishConfig: (c: unknown) =>
+    request<PublishConfig>('/api/publish/config', { method: 'PUT', body: JSON.stringify(c) }),
+  testWechat: () => request<{ message: string }>('/api/publish/wechat/test', { method: 'POST' }),
+  closeBrowser: () => request<void>('/api/publish/browser/close', { method: 'POST' }),
 }

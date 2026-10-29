@@ -31,7 +31,7 @@ function exitSelect() {
   selected.value = new Set()
 }
 
-const aiTopic = (f: Favorite) => ({ title: f.title, desc: f.desc, source: f.source, note: f.note })
+const aiTopic = (f: Favorite) => ({ title: f.title, desc: f.desc, source: f.source, note: f.note, url: f.url })
 
 const text = ref('')
 const tag = ref('')

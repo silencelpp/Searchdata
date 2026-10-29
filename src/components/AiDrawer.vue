@@ -3,9 +3,33 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { computed, ref } from 'vue'
 import { PLATFORMS, useAi, type AiTask } from '../ai'
+import type { PlatformId } from '../api'
+import { splitDraft, usePosts } from '../posts'
 
 const { state, run, stop, close } = useAi()
+const posts = usePosts()
 const copied = ref(false)
+const queued = ref(false)
+
+// AI 写作风格对应的发布平台（短视频口播稿没有对应的图文平台）
+const STYLE_TO_PLATFORM: Record<string, PlatformId | undefined> = {
+  wechat: 'wechat',
+  xiaohongshu: 'xiaohongshu',
+}
+
+async function queue() {
+  if (!state.topic) return
+  const { title, content } = splitDraft(state.output, state.topic.title)
+  const platform = STYLE_TO_PLATFORM[state.platform]
+  await posts.add({
+    title,
+    content,
+    platforms: platform ? [platform] : [],
+    source: state.topic.url ? { title: state.topic.title, url: state.topic.url } : undefined,
+  })
+  queued.value = true
+  setTimeout(() => (queued.value = false), 2000)
+}
 
 const TASKS: { id: AiTask; name: string }[] = [
   { id: 'analyze', name: '选题分析' },
@@ -83,6 +107,14 @@ async function copy() {
         <button v-if="state.loading" class="btn" @click="stop">停止</button>
         <template v-else>
           <button class="btn" @click="run">重新生成</button>
+          <button
+            v-if="state.task === 'draft' && state.output"
+            class="btn"
+            :title="'把这篇初稿放进「发布」页的待发布队列，审核后再发'"
+            @click="queue"
+          >
+            {{ queued ? '✓ 已加入待发布' : '加入待发布' }}
+          </button>
           <button class="btn primary" :disabled="!state.output" @click="copy">{{ copied ? '已复制' : '复制' }}</button>
         </template>
       </footer>

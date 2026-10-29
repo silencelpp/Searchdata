@@ -836,3 +836,276 @@ textarea.input {
 .doc-files .muted {
   flex: none;
 }
+
+.publish {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.post-list {
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+}
+
+.post-list .list {
+  overflow-y: auto;
+}
+
+.pad-x {
+  padding: 10px 12px 0;
+  margin: 0;
+}
+
+.post-item {
+  padding: 10px 16px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+}
+
+.post-item:hover {
+  background: #fafbfc;
+}
+
+.post-item.on {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.post-item .row-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.state {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.state.pending {
+  background: #fff7e6;
+  color: #ad6800;
+}
+
+.state.approved {
+  background: #f0faf4;
+  color: #1a7f45;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.dot.filled,
+.dot.drafted {
+  background: #1a7f45;
+}
+
+.dot.error {
+  background: #d4380d;
+}
+
+.dot.running {
+  background: #2a78d6;
+}
+
+.post-editor .card-head .spacer {
+  flex: 1;
+}
+
+.empty-editor {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+}
+
+.content-box {
+  min-height: 360px;
+  font-family: ui-monospace, Consolas, 'Microsoft YaHei', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.preview-box {
+  min-height: 360px;
+  padding: 4px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cover-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cover {
+  width: 120px;
+  height: 80px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.warn {
+  margin: 0;
+  color: #ad6800;
+  font-size: 12px;
+}
+
+.ok-text {
+  color: #1a7f45;
+  font-size: 13px;
+}
+
+.publish-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+  background: #fafbfc;
+}
+
+.publish-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.publish-head h4,
+.section-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.section-title {
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.section-title:first-child {
+  border-top: 0;
+}
+
+.platforms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.platform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  cursor: pointer;
+}
+
+.platform.on {
+  border-color: var(--accent);
+}
+
+.platform input {
+  accent-color: var(--accent);
+}
+
+.platform > span:nth-child(2) {
+  display: grid;
+  flex: 1;
+  font-size: 13px;
+}
+
+.platform .muted {
+  font-size: 12px;
+}
+
+.result-tag {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 18px;
+  background: #eceef1;
+}
+
+.result-tag.filled,
+.result-tag.drafted {
+  background: #f0faf4;
+  color: #1a7f45;
+}
+
+.result-tag.error {
+  background: #fff1f0;
+  color: #d4380d;
+}
+
+.result-tag.running {
+  background: #e8f1fc;
+  color: #1d5fae;
+}
+
+.results {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.results li {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.results li.error {
+  border-color: #ffccc7;
+  color: #a8071a;
+}
+
+.publish-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.publish-actions .muted {
+  margin-right: auto;
+  font-size: 12px;
+}
+
+.publish-settings {
+  width: min(560px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.publish-settings .dialog-body {
+  overflow-y: auto;
+}

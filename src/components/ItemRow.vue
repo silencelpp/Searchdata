@@ -30,7 +30,7 @@ const { start } = useAi()
       <button
         class="icon"
         title="AI 选题分析 / 生成初稿"
-        @click="start('analyze', { title: item.title, desc: item.desc, source: props.source })"
+        @click="start('analyze', { title: item.title, desc: item.desc, source: props.source, url: item.url })"
       >
         ✦
       </button>

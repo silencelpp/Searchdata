@@ -7,6 +7,8 @@ export interface AiTopic {
   desc?: string
   source?: string
   note?: string
+  /** 原文链接：加入待发布队列时记为选题来源 */
+  url?: string
 }
 
 export interface AiConfig {

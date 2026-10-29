@@ -22,9 +22,15 @@ import { cancelJob, docPath, getJob, listDocs, startJob } from './docs.js'
 import { getHot, hotSources } from './hot.js'
 import { search, searchSources } from './search.js'
 import { addFavorite, listFavorites, removeFavorite, updateFavorite } from './store.js'
+import { closeBrowser } from './browser-publish.js'
+import { createPost, getPost, isPlatform, listPosts, removePost, saveUpload, updatePost, uploadPath } from './posts.js'
+import { publish } from './publish.js'
+import { publicPublishConfig, savePublishConfig } from './publish-config.js'
+import { testWechat } from './wechat.js'
 
 const app = express()
-app.use(express.json())
+// 封面图以 data URL 传上来，放宽请求体大小
+app.use(express.json({ limit: '15mb' }))
 
 app.get('/api/sources', (_req, res) => {
   res.json({
@@ -156,6 +162,67 @@ app.get('/api/docs/file/:file', (req, res) => {
   const p = docPath(req.params.file)
   if (!p || !existsSync(p)) return res.status(404).json({ error: '文件不存在' })
   res.download(p, req.params.file)
+})
+
+app.get('/api/posts', async (_req, res) => {
+  res.json(await listPosts())
+})
+app.post('/api/posts', async (req, res) => {
+  res.json(await createPost(req.body ?? {}))
+})
+app.patch('/api/posts/:id', async (req, res) => {
+  const p = await updatePost(req.params.id, req.body ?? {})
+  if (p) res.json(p)
+  else res.status(404).json({ error: '文章不存在' })
+})
+app.delete('/api/posts/:id', async (req, res) => {
+  await removePost(req.params.id)
+  res.status(204).end()
+})
+app.post('/api/posts/:id/publish', async (req, res) => {
+  try {
+    const platforms = Array.isArray(req.body?.platforms) ? req.body.platforms.filter(isPlatform) : []
+    await publish(req.params.id, platforms)
+    res.json(await getPost(req.params.id))
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+
+app.post('/api/uploads', async (req, res) => {
+  try {
+    res.json({ name: await saveUpload(String(req.body?.dataUrl ?? '')) })
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.get('/api/uploads/:name', (req, res) => {
+  const p = uploadPath(req.params.name)
+  if (!p || !existsSync(p)) return res.status(404).end()
+  res.sendFile(p)
+})
+
+app.get('/api/publish/config', async (_req, res) => {
+  res.json(await publicPublishConfig())
+})
+app.put('/api/publish/config', async (req, res) => {
+  try {
+    await savePublishConfig(req.body ?? {})
+    res.json(await publicPublishConfig())
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.post('/api/publish/wechat/test', async (_req, res) => {
+  try {
+    res.json({ message: await testWechat() })
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.post('/api/publish/browser/close', async (_req, res) => {
+  await closeBrowser()
+  res.status(204).end()
 })
 
 // 打包后由后端直接托管前端页面
