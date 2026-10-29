@@ -8,7 +8,7 @@
  */
 import path from 'node:path'
 import { chromium, type BrowserContext, type Page } from 'playwright-core'
-import { toHtml, toPlain } from './markdown.js'
+import { toHtml, toPlain } from '../shared/markdown.js'
 import { DATA_DIR } from './paths.js'
 import { UPLOAD_DIR, type PlatformId, type Post } from './posts.js'
 import { getPublishConfig } from './publish-config.js'

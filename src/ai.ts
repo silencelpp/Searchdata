@@ -1,5 +1,4 @@
 import { reactive } from 'vue'
-import { useTones } from './tones'
 
 export type AiTask = 'analyze' | 'draft' | 'summary'
 
@@ -33,8 +32,6 @@ const state = reactive({
   task: 'analyze' as AiTask,
   topic: null as AiTopic | null,
   platform: 'wechat',
-  /** 生成初稿时选的文章类型 */
-  tones: [] as string[],
   output: '',
   loading: false,
   error: '',
@@ -48,12 +45,11 @@ async function run() {
   state.output = ''
   state.error = ''
   state.loading = true
-  if (state.task === 'draft') useTones().save(state.tones)
   try {
     const res = await fetch('/api/ai/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: state.task, topic: state.topic, platform: state.platform, tones: state.tones }),
+      body: JSON.stringify({ task: state.task, topic: state.topic, platform: state.platform }),
       signal: controller.signal,
     })
     if (!res.ok || !res.body) {
@@ -78,7 +74,6 @@ function stop() {
   controller?.abort()
 }
 
-/** 生成初稿前要先选平台风格和文章类型，所以打开面板后不自动生成，等用户点「开始生成」 */
 function start(task: AiTask, topic: AiTopic | null = null) {
   stop()
   state.task = task
@@ -86,8 +81,7 @@ function start(task: AiTask, topic: AiTopic | null = null) {
   state.open = true
   state.output = ''
   state.error = ''
-  if (task === 'draft') state.tones = [...useTones().selected.value]
-  else run()
+  run()
 }
 
 function close() {

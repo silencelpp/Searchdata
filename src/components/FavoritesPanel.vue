@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useAi } from '../ai'
+import { goCreate } from '../nav'
 import type { Favorite } from '../api'
 import { useFavorites } from '../favorites'
 import DocsDialog from './DocsDialog.vue'
@@ -109,7 +110,7 @@ const date = (t: number) => new Date(t).toLocaleString('zh-CN', { dateStyle: 'sh
           <a :href="f.url" target="_blank" rel="noopener noreferrer" class="row-title" @click="selecting && $event.preventDefault()">{{ f.title }}</a>
           <div v-if="!selecting" class="row-actions">
             <button class="icon" title="AI 选题分析（会参考你的笔记）" @click="start('analyze', aiTopic(f))">✦</button>
-            <button class="icon" title="AI 生成初稿" @click="start('draft', aiTopic(f))">✍</button>
+            <button class="icon" title="写一篇：带着这个选题去创作" @click="goCreate(aiTopic(f))">✍</button>
             <button class="icon" title="全网搜索" @click="$emit('search', f.title)">⌕</button>
             <button class="icon" title="编辑笔记和标签" @click="edit(f)">✎</button>
             <button class="icon" title="删除" @click="del(f)">✕</button>

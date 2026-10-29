@@ -6,7 +6,7 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { getPublishConfig } from './publish-config.js'
-import { toWechatHtml } from './markdown.js'
+import { toWechatHtml } from '../shared/markdown.js'
 import { UPLOAD_DIR, type Post } from './posts.js'
 
 // 测试时可以指向模拟接口

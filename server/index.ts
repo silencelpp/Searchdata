@@ -5,6 +5,8 @@ import { buildPrompt, publicConfig, saveConfig, streamChat } from './ai.js'
 import { proofread, restyle, rewriteFor } from './ai-edit.js'
 import { checkPost } from './checks.js'
 import { TONES } from './tones.js'
+import { TEMPLATES } from './writing.js'
+import { cancelAutoJob, getAutoJob, startAutoJob } from './auto-write.js'
 import {
   annotate,
   clearAlerts,
@@ -220,6 +222,23 @@ app.post('/api/posts/:id/restyle', async (req, res) => {
   } catch (e) {
     if (!abort.signal.aborted) res.status(400).json({ error: (e as Error).message })
   }
+})
+app.get('/api/auto', (_req, res) => {
+  res.json(getAutoJob())
+})
+app.post('/api/auto', async (req, res) => {
+  try {
+    res.json(await startAutoJob(req.body ?? {}))
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.post('/api/auto/cancel', (_req, res) => {
+  cancelAutoJob()
+  res.status(204).end()
+})
+app.get('/api/templates', (_req, res) => {
+  res.json(TEMPLATES.map(({ id, name, desc, structure }) => ({ id, name, desc, structure })))
 })
 app.get('/api/tones', (_req, res) => {
   res.json(Object.entries(TONES).map(([name, desc]) => ({ name, desc })))

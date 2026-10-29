@@ -4,6 +4,7 @@ import type { Response } from 'express'
 import { getHot, hotSources } from './hot.js'
 import { DATA_DIR } from './paths.js'
 import { toneText } from './tones.js'
+import { ANTI_AI, templateText } from './writing.js'
 
 export interface AiConfig {
   baseUrl: string
@@ -60,7 +61,8 @@ export const PLATFORM_STYLE: Record<string, string> = {
   zhihu: '知乎专栏文章：理性、有论据，先给结论再展开，多用事实、数据和亲身经验，1500-3000 字，避免营销腔和夸张标题。',
 }
 
-const SYSTEM = '你是一名资深的中文自媒体内容策划和编辑，熟悉各平台的流量规律和内容风格。回答使用 Markdown 格式，内容具体、可执行，不说空话。'
+const SYSTEM =
+  '你是一个做了很多年自媒体的老编辑，说话直接、接地气，像在跟同事聊天。你熟悉各平台的读者和流量规律，但不会用行业黑话。用 Markdown 输出，但只在必要时用小标题和列表。'
 
 interface Topic {
   title: string
@@ -85,29 +87,39 @@ export async function buildPrompt(body: Record<string, unknown>): Promise<string
   const topic = (body.topic ?? {}) as Topic
   if (task === 'analyze') {
     if (!topic.title) throw new Error('缺少选题')
-    return `请对下面这个热点做自媒体选题分析：
+    return `我想写这个热点，你帮我看看值不值得写、怎么写：
 
 ${topicText(topic)}
 
-请输出：
-1. **事件梳理**：用 2-3 句话说明这件事是什么、为什么会火（如果信息不足，说明需要核实的地方，不要编造事实）。
-2. **目标受众**：哪些人群会关心。
-3. **切入角度**：给出 4 个不同的切入角度，每个说明适合的平台和预期效果。
-4. **爆款标题**：给出 6 个不同风格的标题。
-5. **内容大纲**：为最推荐的角度写一份大纲。
-6. **风险提示**：涉及的敏感点、版权或事实核查注意事项。`
+像跟同事聊天一样回答，别写成报告。不要表格、不要分级标签、不要每段加粗。按这个顺序说就行：
+
+先用两三句大白话讲清楚这事到底怎么回事、为什么会火。信息不够就直说哪里需要核实，别编。
+
+然后说说哪些人会关心，以及你觉得最好写的一个角度，讲清楚为什么选它。另外再顺带提两个备选角度，一句话一个。
+
+给我 5 个标题，要像真人起的，别用「震惊」「揭秘」这种词，也别都是一个套路。
+
+最后用几句话列一下推荐角度的写法思路，再提醒一下有没有要避开的雷区。
+
+${ANTI_AI}`
   }
   if (task === 'draft') {
     if (!topic.title) throw new Error('缺少选题')
     const style = PLATFORM_STYLE[String(body.platform)] ?? PLATFORM_STYLE.wechat
     const tones = toneText(body.tones)
-    return `请根据下面的选题写一篇初稿。
+    const structure = templateText(body.template, body.customTemplate)
+    return `请根据下面的选题写一篇可以直接发的文章。
 
 ${topicText(topic)}
 
-平台和风格要求：${style}
-${tones ? `\n文章类型和语气：${tones}。全文都要贯彻这个语气，标题也要符合。\n` : ''}
-注意：不要编造具体数据、引语或未经证实的细节；需要作者补充或核实的地方用【待补充：…】标出。直接输出成稿，不要解释写作思路。`
+平台：${style}
+${tones ? `语气：${tones}。全文都要是这个感觉，标题也是。\n` : ''}${structure ? `${structure}\n` : ''}
+${ANTI_AI}
+
+其他要求：
+- 第一行用「# 标题」写标题，下面直接是正文。
+- 不要编造具体数据、引语或细节；需要作者补充或核实的地方用【待补充：…】标出。
+- 直接输出文章，不要解释写作思路，不要在结尾问「需要我修改吗」。`
   }
   if (task === 'summary') {
     const results = await Promise.all(hotSources.map((s) => getHot(s.id)))
@@ -116,15 +128,22 @@ ${tones ? `\n文章类型和语气：${tones}。全文都要贯彻这个语气�
       .map((r) => `【${r.name}】\n${r.items.slice(0, 15).map((i, n) => `${n + 1}. ${i.title}${i.hot ? `（${i.hot}）` : ''}`).join('\n')}`)
       .join('\n\n')
     if (!lists) throw new Error('热榜数据暂时获取不到')
-    return `下面是今天各平台的实时热榜：
+    return `下面是今天各平台的热榜：
 
 ${lists}
 
-请帮我做一份自媒体选题日报：
-1. **今日热点主题**：把相同或相关的话题合并，归纳出 5-8 个主题，每个说明涉及哪些平台、热度如何。
-2. **跨平台共振**：哪些话题在多个平台同时上榜，说明它们值得优先做。
-3. **推荐选题**：挑出 5 个最适合自媒体创作的选题，每个给出一个切入角度和一个标题。
-4. **不建议跟的热点**：哪些话题敏感、时效太短或同质化严重，简单说明原因。`
+你是我的选题编辑，早上帮我过一遍热榜，告诉我今天写什么。像在工作群里发消息一样说，口语化，别写成报告。
+
+不要表格，不要「P0/P1」这种分级，不要「一、二、三」这种大标题，不要每句都加粗。
+
+大概这样说：
+先用一段话讲讲今天整体是什么情况，哪件事最火、在哪几个平台都上了榜。
+
+然后挑 3-5 个今天最值得写的，每个用一个小标题（就写选题本身），下面说两三句：为什么值得写、从什么角度切、给一个能直接用的标题。
+
+最后用一两句提醒一下今天哪些热点别碰，为什么。
+
+${ANTI_AI}`
   }
   throw new Error('未知任务')
 }

@@ -87,3 +87,13 @@ function blocksText(tokens: Token[], depth = 0): string[] {
 export function toPlain(md: string) {
   return blocksText(marked.lexer(md)).join('\n\n')
 }
+
+/** 从 AI 初稿里拆出标题：第一个 Markdown 标题，或者第一行 */
+export function splitDraft(md: string, fallbackTitle: string) {
+  const lines = md.trim().split('\n')
+  const i = lines.findIndex((l) => /^#{1,3}\s+\S/.test(l))
+  if (i >= 0 && i < 3) {
+    return { title: lines[i].replace(/^#+\s+/, '').trim(), content: lines.slice(i + 1).join('\n').trim() }
+  }
+  return { title: fallbackTitle, content: md.trim() }
+}

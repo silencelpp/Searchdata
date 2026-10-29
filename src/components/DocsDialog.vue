@@ -4,6 +4,8 @@ import { PLATFORMS, useAi } from '../ai'
 import { api, type DocFile, type DocJob, type Favorite } from '../api'
 import { useTones } from '../tones'
 import TonePicker from './TonePicker.vue'
+import TemplatePicker from './TemplatePicker.vue'
+import { useTemplates } from '../templates'
 
 const props = defineProps<{ items: Favorite[] }>()
 const emit = defineEmits<{ close: []; done: [] }>()
@@ -13,6 +15,9 @@ const toneStore = useTones()
 const task = ref<'analyze' | 'draft'>('analyze')
 const platform = ref('wechat')
 const tones = ref<string[]>([...toneStore.selected.value])
+const tplStore = useTemplates()
+const template = ref(tplStore.selected.value)
+const customTemplate = ref(tplStore.custom.value)
 const job = ref<DocJob | null>(null)
 const files = ref<DocFile[]>([])
 const error = ref('')
@@ -44,12 +49,17 @@ function stopPolling() {
 async function start() {
   error.value = ''
   try {
-    if (task.value === 'draft') toneStore.save(tones.value)
+    if (task.value === 'draft') {
+      toneStore.save(tones.value)
+      tplStore.save(template.value, customTemplate.value)
+    }
     job.value = await api.startDoc({
       ids: props.items.map((f) => f.id),
       task: task.value,
       platform: platform.value,
       tones: task.value === 'draft' ? tones.value : [],
+      template: task.value === 'draft' ? template.value : '',
+      customTemplate: customTemplate.value,
     })
     startPolling()
   } catch (e) {
@@ -130,6 +140,7 @@ onUnmounted(stopPolling)
               </button>
             </div>
           </label>
+          <TemplatePicker v-if="task === 'draft'" v-model="template" v-model:custom="customTemplate" />
           <TonePicker v-if="task === 'draft'" v-model="tones" />
           <p class="muted">
             AI 会逐条生成，会参考你在素材上写的笔记。每条素材单独一章，开头附上来源、链接、标签。预计{{ estimate }}。

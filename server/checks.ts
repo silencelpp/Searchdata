@@ -3,7 +3,7 @@
  * - error：必须改，否则不能审核通过（标题超长、缺封面、还有【待补充】等）
  * - warn：提醒你看一眼（广告法敏感词、小红书引流词等），可能是误报
  */
-import { toPlain } from './markdown.js'
+import { toPlain } from '../shared/markdown.js'
 import { PLATFORMS, resolveVersion, type PlatformId, type Post } from './posts.js'
 
 export interface Issue {

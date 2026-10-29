@@ -7,6 +7,7 @@ import { chat, PLATFORM_STYLE } from './ai.js'
 import { TITLE_LIMIT } from './checks.js'
 import { PLATFORMS, type PlatformId } from './posts.js'
 import { toneText } from './tones.js'
+import { ANTI_AI } from './writing.js'
 
 export interface Suggestion {
   /** 原文里要替换的那一小段，必须能在原文中找到 */
@@ -33,7 +34,7 @@ export async function proofread(title: string, content: string, signal: AbortSig
 - typo：错别字、用错的词、标点错误
 - grammar：病句、语序不通、成分残缺
 - fact：可能有事实错误、数据存疑、需要核实的说法（replace 写成更稳妥的表述）
-- style：明显的重复啰嗦、AI 腔的套话
+- style：明显的重复啰嗦、AI 腔的套话（比如「值得注意的是」「总而言之」「赋能」「不仅……更是……」），replace 写成人话
 
 只输出一个 JSON 数组，不要其他文字。每一项格式：
 {"find": "原文中要修改的那一小段（必须和原文一字不差，尽量短，5-30 字）", "replace": "修改后的文字", "reason": "为什么改，一句话", "kind": "typo|grammar|fact|style"}
@@ -75,6 +76,7 @@ export async function restyle(
 要求：
 - 保留原文的核心观点、事实、数据和结构，不要编造新内容
 - 调整用词、句式、开头和结尾，让全文都符合这个语气；标题也可以相应优化
+- 顺手去掉 AI 腔：${ANTI_AI.replace(/^写作要求（很重要）：\n/, '').replace(/\n- /g, '；')}
 - 原文里的【待补充】标记要原样保留，Markdown 格式保留
 
 只输出一个 JSON 对象，不要其他文字：
@@ -101,6 +103,8 @@ export async function rewriteFor(
 平台要求：${PLATFORM_STYLE[platform]}
 标题必须在 ${TITLE_LIMIT[platform]} 字以内。
 保留原文的核心观点和事实，不要编造新的数据或引语；原文里的【待补充】标记要原样保留。
+
+${ANTI_AI}
 
 只输出一个 JSON 对象，不要其他文字：
 {"title": "新标题", "content": "新正文（Markdown）", "tags": ["话题1", "话题2"]}

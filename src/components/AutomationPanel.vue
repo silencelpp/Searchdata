@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useAlerts } from '../alerts'
 import { api, type AutomationConfig, type AutomationStatus } from '../api'
 import { useAi } from '../ai'
+import { goCreate } from '../nav'
 
 const emit = defineEmits<{ search: [q: string] }>()
 const alerts = useAlerts()
@@ -220,6 +221,7 @@ onMounted(async () => {
           </div>
           <div class="row-actions">
             <button class="icon" title="AI 选题分析" @click="useAi().start('analyze', { title: a.title, source: a.sourceName })">✦</button>
+            <button class="icon" title="写一篇：带着这个选题去创作" @click="goCreate({ title: a.title, source: a.sourceName, url: a.url })">✍</button>
             <button class="icon" title="全网搜索" @click="emit('search', a.title)">⌕</button>
           </div>
         </li>

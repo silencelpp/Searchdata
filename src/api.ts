@@ -148,6 +148,27 @@ export interface PublishConfig {
   browser: 'msedge' | 'chrome'
 }
 
+export interface AutoArticle {
+  topic: string
+  source: string
+  angle: string
+  status: 'waiting' | 'writing' | 'done' | 'error'
+  postId?: string
+  title?: string
+  error?: string
+}
+
+export interface AutoJob {
+  id: string
+  theme: string
+  count: number
+  stage: 'scanning' | 'picking' | 'writing' | 'done' | 'error' | 'cancelled'
+  message: string
+  articles: AutoArticle[]
+  startedAt: number
+  error?: string
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -192,11 +213,15 @@ export const api = {
   report: (date: string) => request<Report>(`/api/reports/${date}`),
   generateReport: () => request<Report>('/api/reports', { method: 'POST' }),
   docs: () => request<{ job: DocJob | null; files: DocFile[] }>('/api/docs'),
-  startDoc: (body: { ids: string[]; task: 'analyze' | 'draft'; platform: string; tones: string[] }) =>
+  startDoc: (body: { ids: string[]; task: 'analyze' | 'draft'; platform: string; tones: string[]; template: string; customTemplate: string }) =>
     request<DocJob>('/api/docs', { method: 'POST', body: JSON.stringify(body) }),
   cancelDoc: () => request<void>('/api/docs/cancel', { method: 'POST' }),
   docUrl: (file: string) => `/api/docs/file/${encodeURIComponent(file)}`,
   posts: () => request<Post[]>('/api/posts'),
+  autoJob: () => request<AutoJob | null>('/api/auto'),
+  startAuto: (body: { theme: string; count: number; platforms: PlatformId[]; tones: string[] }) =>
+    request<AutoJob>('/api/auto', { method: 'POST', body: JSON.stringify(body) }),
+  cancelAuto: () => request<void>('/api/auto/cancel', { method: 'POST' }),
   createPost: (p: Partial<Post>) => request<Post>('/api/posts', { method: 'POST', body: JSON.stringify(p) }),
   updatePost: (id: string, patch: Partial<Post>) =>
     request<Post>(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
