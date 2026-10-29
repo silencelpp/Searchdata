@@ -2,6 +2,8 @@ import express from 'express'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { buildPrompt, publicConfig, saveConfig, streamChat } from './ai.js'
+import { proofread, rewriteFor } from './ai-edit.js'
+import { checkPost } from './checks.js'
 import {
   annotate,
   clearAlerts,
@@ -171,9 +173,50 @@ app.post('/api/posts', async (req, res) => {
   res.json(await createPost(req.body ?? {}))
 })
 app.patch('/api/posts/:id', async (req, res) => {
-  const p = await updatePost(req.params.id, req.body ?? {})
-  if (p) res.json(p)
-  else res.status(404).json({ error: '文章不存在' })
+  try {
+    // 审核通过前跑发布前检查，有 error 级别的问题就拒绝
+    const p = await updatePost(req.params.id, req.body ?? {}, (post) => {
+      const errors = checkPost(post).filter((i) => i.level === 'error')
+      return errors.length ? `发布前检查没通过：${errors.map((i) => i.message).join('；')}` : null
+    })
+    if (p) res.json(p)
+    else res.status(404).json({ error: '文章不存在' })
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.get('/api/posts/:id/check', async (req, res) => {
+  const p = await getPost(req.params.id)
+  if (!p) return res.status(404).json({ error: '文章不存在' })
+  res.json(checkPost(p))
+})
+app.post('/api/posts/:id/proofread', async (req, res) => {
+  const p = await getPost(req.params.id)
+  if (!p) return res.status(404).json({ error: '文章不存在' })
+  const abort = new AbortController()
+  res.on('close', () => abort.abort())
+  try {
+    // scope 指定校对哪个版本，默认通用版本
+    const s: unknown = req.body?.scope
+    const scope = isPlatform(s) ? s : null
+    const v = (scope && p.variants?.[scope]) || p
+    res.json(await proofread(v.title, v.content, AbortSignal.any([abort.signal, AbortSignal.timeout(3 * 60_000)])))
+  } catch (e) {
+    if (!abort.signal.aborted) res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.post('/api/posts/:id/rewrite', async (req, res) => {
+  const p = await getPost(req.params.id)
+  if (!p) return res.status(404).json({ error: '文章不存在' })
+  if (!isPlatform(req.body?.platform)) return res.status(400).json({ error: '请选择平台' })
+  const abort = new AbortController()
+  res.on('close', () => abort.abort())
+  try {
+    const v = await rewriteFor(req.body.platform, p, AbortSignal.any([abort.signal, AbortSignal.timeout(3 * 60_000)]))
+    res.json(await updatePost(p.id, { variants: { [req.body.platform]: v } }))
+  } catch (e) {
+    if (!abort.signal.aborted) res.status(400).json({ error: (e as Error).message })
+  }
 })
 app.delete('/api/posts/:id', async (req, res) => {
   await removePost(req.params.id)

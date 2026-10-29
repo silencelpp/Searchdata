@@ -22,6 +22,15 @@ export interface PublishResult {
   at: number
 }
 
+/** 某个平台的专属版本：有就用它，没有就用通用版本 */
+export interface Variant {
+  title: string
+  content: string
+  tags: string[]
+  /** 不填就用通用封面 */
+  cover?: string
+}
+
 export interface Post {
   id: string
   title: string
@@ -32,12 +41,26 @@ export interface Post {
   tags: string[]
   /** data/uploads 下的文件名 */
   cover?: string
+  /** 各平台专属版本，比如小红书短笔记版 */
+  variants?: Partial<Record<PlatformId, Variant>>
   status: 'pending' | 'approved'
   platforms: PlatformId[]
   source?: { title: string; url: string }
   results: Partial<Record<PlatformId, PublishResult>>
   createdAt: number
   updatedAt: number
+}
+
+/** 某个平台实际要发出去的内容 */
+export function resolveVersion(post: Post, platform: PlatformId) {
+  const v = post.variants?.[platform]
+  return {
+    title: v?.title ?? post.title,
+    content: v?.content ?? post.content,
+    summary: post.summary,
+    tags: v?.tags.length ? v.tags : post.tags,
+    cover: v?.cover ?? post.cover,
+  }
 }
 
 const file = path.join(DATA_DIR, 'posts.json')
@@ -100,7 +123,14 @@ export function createPost(input: Record<string, unknown>): Promise<Post> {
   })
 }
 
-export function updatePost(id: string, patch: Record<string, unknown>): Promise<Post | null> {
+/**
+ * validate：审核通过前调用，返回错误信息就拒绝通过（放在参数里，避免和 checks.ts 互相引用）
+ */
+export function updatePost(
+  id: string,
+  patch: Record<string, unknown>,
+  validate?: (p: Post) => string | null,
+): Promise<Post | null> {
   return mutate((items) => {
     const p = items.find((x) => x.id === id)
     if (!p) return null
@@ -109,14 +139,30 @@ export function updatePost(id: string, patch: Record<string, unknown>): Promise<
     if ('summary' in patch) p.summary = str(patch.summary, 300)
     if ('tags' in patch) p.tags = toTags(patch.tags)
     if ('platforms' in patch && Array.isArray(patch.platforms)) p.platforms = patch.platforms.filter(isPlatform)
-    if ('cover' in patch) p.cover = typeof patch.cover === 'string' && patch.cover ? path.basename(patch.cover) : undefined
+    if ('cover' in patch) p.cover = toCover(patch.cover)
+    // variants: { xiaohongshu: {...} } 设置或替换某个平台的版本，传 null 删除
+    if (patch.variants && typeof patch.variants === 'object') {
+      p.variants ??= {}
+      for (const [k, v] of Object.entries(patch.variants as Record<string, any>)) {
+        if (!isPlatform(k)) continue
+        if (v === null) delete p.variants[k]
+        else p.variants[k] = { title: str(v.title, 200) || p.title, content: str(v.content, 100_000), tags: toTags(v.tags), cover: toCover(v.cover) }
+      }
+    }
     // 改了内容就要重新审核
-    if (['title', 'content', 'summary', 'tags', 'cover'].some((k) => k in patch)) p.status = 'pending'
-    if (patch.status === 'approved' || patch.status === 'pending') p.status = patch.status
+    if (['title', 'content', 'summary', 'tags', 'cover', 'variants'].some((k) => k in patch)) p.status = 'pending'
+    if (patch.status === 'approved') {
+      const err = validate?.(p)
+      if (err) throw new Error(err)
+      p.status = 'approved'
+    }
+    if (patch.status === 'pending') p.status = 'pending'
     p.updatedAt = Date.now()
     return p
   })
 }
+
+const toCover = (v: unknown) => (typeof v === 'string' && v ? path.basename(v) : undefined)
 
 export function setResult(id: string, platform: PlatformId, result: Omit<PublishResult, 'at'>) {
   return mutate((items) => {
@@ -130,7 +176,10 @@ export async function removePost(id: string): Promise<boolean> {
     const i = items.findIndex((x) => x.id === id)
     return i >= 0 ? items.splice(i, 1)[0] : null
   })
-  if (removed?.cover) await unlink(path.join(UPLOAD_DIR, removed.cover)).catch(() => {})
+  if (removed) {
+    const covers = [removed.cover, ...Object.values(removed.variants ?? {}).map((v) => v?.cover)].filter(Boolean)
+    for (const c of new Set(covers)) await unlink(path.join(UPLOAD_DIR, c!)).catch(() => {})
+  }
   return !!removed
 }
 

@@ -48,13 +48,15 @@ export async function saveConfig(input: Record<string, unknown>) {
   await writeFile(file, JSON.stringify(config, null, 2))
 }
 
-const PLATFORM_STYLE: Record<string, string> = {
+export const PLATFORM_STYLE: Record<string, string> = {
   wechat: '微信公众号长文：有吸引人的标题和导语，小标题分段，1500-2500 字，观点清晰、有信息量，结尾引导关注或留言。',
   xiaohongshu:
     '小红书笔记：标题 20 字以内、带情绪或数字，正文口语化、分段短、适当使用 emoji，300-600 字，结尾附 5-8 个话题标签。',
   video:
     '短视频口播稿（抖音/视频号）：前 3 秒必须有钩子，口语化短句，时长约 60-90 秒（约 300-400 字），标注画面或字幕建议，结尾引导互动。',
   weibo: '微博：140-300 字，观点鲜明，带 1-2 个相关话题标签，适合引发讨论和转发。',
+  toutiao: '今日头条文章：标题 30 字以内、信息量大、有悬念或数字，正文开门见山、段落短，1000-2000 字，适合大众读者，结尾引导评论。',
+  zhihu: '知乎专栏文章：理性、有论据，先给结论再展开，多用事实、数据和亲身经验，1500-3000 字，避免营销腔和夸张标题。',
 }
 
 const SYSTEM = '你是一名资深的中文自媒体内容策划和编辑，熟悉各平台的流量规律和内容风格。回答使用 Markdown 格式，内容具体、可执行，不说空话。'

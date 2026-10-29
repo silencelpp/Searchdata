@@ -107,6 +107,26 @@ export interface PublishResult {
   at: number
 }
 
+export interface Variant {
+  title: string
+  content: string
+  tags: string[]
+  cover?: string
+}
+
+export interface Issue {
+  level: 'error' | 'warn'
+  scope: 'main' | PlatformId
+  message: string
+}
+
+export interface Suggestion {
+  find: string
+  replace: string
+  reason: string
+  kind: 'typo' | 'grammar' | 'fact' | 'style'
+}
+
 export interface Post {
   id: string
   title: string
@@ -114,6 +134,7 @@ export interface Post {
   summary: string
   tags: string[]
   cover?: string
+  variants?: Partial<Record<PlatformId, Variant>>
   status: 'pending' | 'approved'
   platforms: PlatformId[]
   source?: { title: string; url: string }
@@ -180,6 +201,11 @@ export const api = {
   updatePost: (id: string, patch: Partial<Post>) =>
     request<Post>(`/api/posts/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   removePost: (id: string) => request<void>(`/api/posts/${id}`, { method: 'DELETE' }),
+  checkPost: (id: string) => request<Issue[]>(`/api/posts/${id}/check`),
+  proofread: (id: string, scope: 'main' | PlatformId) =>
+    request<Suggestion[]>(`/api/posts/${id}/proofread`, { method: 'POST', body: JSON.stringify({ scope }) }),
+  rewrite: (id: string, platform: PlatformId) =>
+    request<Post>(`/api/posts/${id}/rewrite`, { method: 'POST', body: JSON.stringify({ platform }) }),
   publish: (id: string, platforms: PlatformId[]) =>
     request<Post>(`/api/posts/${id}/publish`, { method: 'POST', body: JSON.stringify({ platforms }) }),
   upload: (dataUrl: string) =>
