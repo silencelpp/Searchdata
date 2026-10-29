@@ -6,6 +6,7 @@
 import { chat, PLATFORM_STYLE } from './ai.js'
 import { TITLE_LIMIT } from './checks.js'
 import { PLATFORMS, type PlatformId } from './posts.js'
+import { toneText } from './tones.js'
 
 export interface Suggestion {
   /** 原文里要替换的那一小段，必须能在原文中找到 */
@@ -59,6 +60,35 @@ ${content}`
       .filter((x) => x.find && x.find !== x.replace && full.includes(x.find))
       .slice(0, 20)
   )
+}
+
+/** 按选定的文章类型/语气优化文章：内容和事实不变，只调整表达；结果不直接保存，交给用户确认 */
+export async function restyle(
+  post: { title: string; content: string },
+  tones: unknown,
+  signal: AbortSignal,
+): Promise<{ title: string; content: string }> {
+  const desc = toneText(tones)
+  if (!desc) throw new Error('请至少选择一个文章类型')
+  const prompt = `请把下面这篇文章按指定的类型和语气优化：${desc}。
+
+要求：
+- 保留原文的核心观点、事实、数据和结构，不要编造新内容
+- 调整用词、句式、开头和结尾，让全文都符合这个语气；标题也可以相应优化
+- 原文里的【待补充】标记要原样保留，Markdown 格式保留
+
+只输出一个 JSON 对象，不要其他文字：
+{"title": "优化后的标题", "content": "优化后的正文（Markdown）"}
+
+原标题：${post.title}
+
+原正文：
+${post.content}`
+  const j = extractJson<{ title?: unknown; content?: unknown }>(await chat(prompt, signal))
+  const title = String(j.title ?? '').trim()
+  const content = String(j.content ?? '').trim()
+  if (!title || !content) throw new Error('AI 没有返回完整的标题和正文，请重试')
+  return { title, content }
 }
 
 export async function rewriteFor(

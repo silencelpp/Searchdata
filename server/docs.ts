@@ -41,7 +41,7 @@ export function cancelJob() {
 
 const MAX_ITEMS = 30
 
-export async function startJob(input: { ids: unknown; task: unknown; platform: unknown }): Promise<DocJob> {
+export async function startJob(input: { ids: unknown; task: unknown; platform: unknown; tones?: unknown }): Promise<DocJob> {
   if (job?.status === 'running') throw new Error('已有文档正在生成，请等它完成或先取消')
   if (!(await getConfig()).apiKey) throw new Error('还没有配置 API Key，请先在「AI 设置」里填写')
   const task: DocTask = input.task === 'draft' ? 'draft' : 'analyze'
@@ -75,7 +75,7 @@ export async function startJob(input: { ids: unknown; task: unknown; platform: u
         current.current = f.title
         const section: DocSection = { title: f.title, url: f.url, source: f.source, tags: f.tags, note: f.note }
         try {
-          const prompt = await buildPrompt({ task, platform, topic: { title: f.title, desc: f.desc, source: f.source, note: f.note } })
+          const prompt = await buildPrompt({ task, platform, tones: input.tones, topic: { title: f.title, desc: f.desc, source: f.source, note: f.note } })
           // 每条最多 3 分钟；取消时也会中断
           section.content = await chat(prompt, AbortSignal.any([signal, AbortSignal.timeout(3 * 60_000)]))
           if (!section.content.trim()) throw new Error('AI 没有返回内容')

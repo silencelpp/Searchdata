@@ -2,8 +2,9 @@ import express from 'express'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { buildPrompt, publicConfig, saveConfig, streamChat } from './ai.js'
-import { proofread, rewriteFor } from './ai-edit.js'
+import { proofread, restyle, rewriteFor } from './ai-edit.js'
 import { checkPost } from './checks.js'
+import { TONES } from './tones.js'
 import {
   annotate,
   clearAlerts,
@@ -204,6 +205,24 @@ app.post('/api/posts/:id/proofread', async (req, res) => {
   } catch (e) {
     if (!abort.signal.aborted) res.status(400).json({ error: (e as Error).message })
   }
+})
+app.post('/api/posts/:id/restyle', async (req, res) => {
+  const p = await getPost(req.params.id)
+  if (!p) return res.status(404).json({ error: '文章不存在' })
+  const abort = new AbortController()
+  res.on('close', () => abort.abort())
+  try {
+    // 只返回优化结果，不保存；用户在页面上确认后再保存
+    const s: unknown = req.body?.scope
+    const scope = isPlatform(s) ? s : null
+    const v = (scope && p.variants?.[scope]) || p
+    res.json(await restyle(v, req.body?.tones, AbortSignal.any([abort.signal, AbortSignal.timeout(3 * 60_000)])))
+  } catch (e) {
+    if (!abort.signal.aborted) res.status(400).json({ error: (e as Error).message })
+  }
+})
+app.get('/api/tones', (_req, res) => {
+  res.json(Object.entries(TONES).map(([name, desc]) => ({ name, desc })))
 })
 app.post('/api/posts/:id/rewrite', async (req, res) => {
   const p = await getPost(req.params.id)

@@ -2,13 +2,17 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { PLATFORMS, useAi } from '../ai'
 import { api, type DocFile, type DocJob, type Favorite } from '../api'
+import { useTones } from '../tones'
+import TonePicker from './TonePicker.vue'
 
 const props = defineProps<{ items: Favorite[] }>()
 const emit = defineEmits<{ close: []; done: [] }>()
 const { state: ai } = useAi()
+const toneStore = useTones()
 
 const task = ref<'analyze' | 'draft'>('analyze')
 const platform = ref('wechat')
+const tones = ref<string[]>([...toneStore.selected.value])
 const job = ref<DocJob | null>(null)
 const files = ref<DocFile[]>([])
 const error = ref('')
@@ -40,7 +44,13 @@ function stopPolling() {
 async function start() {
   error.value = ''
   try {
-    job.value = await api.startDoc({ ids: props.items.map((f) => f.id), task: task.value, platform: platform.value })
+    if (task.value === 'draft') toneStore.save(tones.value)
+    job.value = await api.startDoc({
+      ids: props.items.map((f) => f.id),
+      task: task.value,
+      platform: platform.value,
+      tones: task.value === 'draft' ? tones.value : [],
+    })
     startPolling()
   } catch (e) {
     error.value = (e as Error).message
@@ -120,6 +130,7 @@ onUnmounted(stopPolling)
               </button>
             </div>
           </label>
+          <TonePicker v-if="task === 'draft'" v-model="tones" />
           <p class="muted">
             AI 会逐条生成，会参考你在素材上写的笔记。每条素材单独一章，开头附上来源、链接、标签。预计{{ estimate }}。
           </p>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { PLATFORMS, useAi, type AiTask } from '../ai'
 import type { PlatformId } from '../api'
 import { splitDraft, usePosts } from '../posts'
+import { useTones } from '../tones'
+import TonePicker from './TonePicker.vue'
 
 const { state, run, stop, close } = useAi()
 const posts = usePosts()
@@ -38,16 +40,21 @@ const TASKS: { id: AiTask; name: string }[] = [
 
 const html = computed(() => DOMPurify.sanitize(marked.parse(state.output, { async: false })))
 
+/** 切到「生成初稿」时先让用户选好平台和类型，不直接生成；切到「选题分析」直接跑 */
 function switchTask(task: AiTask) {
   if (state.task === task) return
+  stop()
   state.task = task
-  run()
+  state.output = ''
+  state.error = ''
+  if (task === 'draft') state.tones = [...useTones().selected.value]
+  else run()
 }
 
-function switchPlatform(id: string) {
-  state.platform = id
-  run()
-}
+/** 已经生成过初稿后又改了平台或类型：提示可以重新生成 */
+const changed = ref(false)
+watch(() => [state.platform, state.tones.join()], () => (changed.value = state.task === 'draft' && !!state.output))
+watch(() => state.loading, (v) => v && (changed.value = false))
 
 async function copy() {
   await navigator.clipboard.writeText(state.output)
@@ -77,18 +84,27 @@ async function copy() {
             {{ t.name }}
           </button>
         </div>
-        <div v-if="state.task === 'draft'" class="history">
-          <span class="muted">平台风格：</span>
-          <button
-            v-for="p in PLATFORMS"
-            :key="p.id"
-            class="chip"
-            :class="{ on: state.platform === p.id }"
-            :disabled="state.loading"
-            @click="switchPlatform(p.id)"
-          >
-            {{ p.name }}
-          </button>
+        <div v-if="state.task === 'draft'" class="draft-setup">
+          <div class="history">
+            <span class="muted">平台风格：</span>
+            <button
+              v-for="p in PLATFORMS"
+              :key="p.id"
+              class="chip"
+              :class="{ on: state.platform === p.id }"
+              :disabled="state.loading"
+              @click="state.platform = p.id"
+            >
+              {{ p.name }}
+            </button>
+          </div>
+          <TonePicker v-model="state.tones" :disabled="state.loading" />
+          <div class="draft-go">
+            <span v-if="changed" class="muted">已修改风格设置，点击重新生成</span>
+            <button v-if="!state.loading" class="btn primary" @click="run">
+              ✦ {{ state.output ? '按新设置重新生成' : '开始生成初稿' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -98,6 +114,9 @@ async function copy() {
           <button v-if="state.error.includes('API Key')" class="btn" @click="state.settingsOpen = true">去设置</button>
         </p>
         <p v-else-if="state.loading && !state.output" class="muted">AI 正在思考…</p>
+        <p v-else-if="state.task === 'draft' && !state.output && !state.loading" class="muted draft-hint">
+          选好平台风格和文章类型后，点上面的「开始生成初稿」。
+        </p>
         <!-- eslint-disable-next-line vue/no-v-html -- 内容已经过 DOMPurify 清洗 -->
         <article class="markdown" v-html="html" />
       </div>
@@ -106,7 +125,7 @@ async function copy() {
         <span class="muted">AI 生成内容仅供参考，发布前请核实事实</span>
         <button v-if="state.loading" class="btn" @click="stop">停止</button>
         <template v-else>
-          <button class="btn" @click="run">重新生成</button>
+          <button v-if="state.task !== 'draft' || state.output" class="btn" @click="run">重新生成</button>
           <button
             v-if="state.task === 'draft' && state.output"
             class="btn"

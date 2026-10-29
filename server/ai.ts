@@ -3,6 +3,7 @@ import path from 'node:path'
 import type { Response } from 'express'
 import { getHot, hotSources } from './hot.js'
 import { DATA_DIR } from './paths.js'
+import { toneText } from './tones.js'
 
 export interface AiConfig {
   baseUrl: string
@@ -99,12 +100,13 @@ ${topicText(topic)}
   if (task === 'draft') {
     if (!topic.title) throw new Error('缺少选题')
     const style = PLATFORM_STYLE[String(body.platform)] ?? PLATFORM_STYLE.wechat
+    const tones = toneText(body.tones)
     return `请根据下面的选题写一篇初稿。
 
 ${topicText(topic)}
 
 平台和风格要求：${style}
-
+${tones ? `\n文章类型和语气：${tones}。全文都要贯彻这个语气，标题也要符合。\n` : ''}
 注意：不要编造具体数据、引语或未经证实的细节；需要作者补充或核实的地方用【待补充：…】标出。直接输出成稿，不要解释写作思路。`
   }
   if (task === 'summary') {

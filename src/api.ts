@@ -192,7 +192,7 @@ export const api = {
   report: (date: string) => request<Report>(`/api/reports/${date}`),
   generateReport: () => request<Report>('/api/reports', { method: 'POST' }),
   docs: () => request<{ job: DocJob | null; files: DocFile[] }>('/api/docs'),
-  startDoc: (body: { ids: string[]; task: 'analyze' | 'draft'; platform: string }) =>
+  startDoc: (body: { ids: string[]; task: 'analyze' | 'draft'; platform: string; tones: string[] }) =>
     request<DocJob>('/api/docs', { method: 'POST', body: JSON.stringify(body) }),
   cancelDoc: () => request<void>('/api/docs/cancel', { method: 'POST' }),
   docUrl: (file: string) => `/api/docs/file/${encodeURIComponent(file)}`,
@@ -206,6 +206,12 @@ export const api = {
     request<Suggestion[]>(`/api/posts/${id}/proofread`, { method: 'POST', body: JSON.stringify({ scope }) }),
   rewrite: (id: string, platform: PlatformId) =>
     request<Post>(`/api/posts/${id}/rewrite`, { method: 'POST', body: JSON.stringify({ platform }) }),
+  restyle: (id: string, scope: 'main' | PlatformId, tones: string[], signal?: AbortSignal) =>
+    request<{ title: string; content: string }>(`/api/posts/${id}/restyle`, {
+      method: 'POST',
+      body: JSON.stringify({ scope, tones }),
+      signal,
+    }),
   publish: (id: string, platforms: PlatformId[]) =>
     request<Post>(`/api/posts/${id}/publish`, { method: 'POST', body: JSON.stringify({ platforms }) }),
   upload: (dataUrl: string) =>

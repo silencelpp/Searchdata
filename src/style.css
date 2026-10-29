@@ -1340,3 +1340,106 @@ textarea.input {
 .swatch.on {
   box-shadow: 0 0 0 2px var(--text);
 }
+
+.tone-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.tone-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.tone-head > span:first-child {
+  color: #5c636e;
+}
+
+.tone-head .muted {
+  font-size: 12px;
+}
+
+.tone-picker .history {
+  margin: 0;
+}
+
+.tone-picker .chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tone-custom .input {
+  width: 140px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+
+.draft-setup {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
+}
+
+.draft-setup .history {
+  margin: 0;
+}
+
+.draft-go {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.draft-go .muted {
+  font-size: 12px;
+}
+
+.draft-hint {
+  padding: 40px 0;
+  text-align: center;
+}
+
+.restyle-dialog {
+  width: min(760px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.restyle-dialog .dialog-body {
+  overflow-y: auto;
+}
+
+.restyle-dialog .dialog-body > p {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.restyle-result {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.restyle-title {
+  display: grid;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.restyle-title del {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.restyle-dialog .preview-box {
+  min-height: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}

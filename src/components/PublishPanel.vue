@@ -5,6 +5,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api, PUBLISH_PLATFORMS, type Issue, type PlatformId, type Post, type Suggestion } from '../api'
 import { usePosts } from '../posts'
 import CoverMaker from './CoverMaker.vue'
+import RestyleDialog from './RestyleDialog.vue'
 
 const { list, refresh, add, replace, settingsOpen } = usePosts()
 
@@ -25,6 +26,7 @@ const suggestions = ref<Suggestion[] | null>(null)
 const proofreading = ref(false)
 const rewriting = ref<PlatformId | null>(null)
 const coverMaker = ref(false)
+const restyleOpen = ref(false)
 let poll: ReturnType<typeof setInterval> | undefined
 
 const name = (id: Scope) => (id === 'main' ? '通用版本' : PUBLISH_PLATFORMS.find((x) => x.id === id)!.name)
@@ -231,6 +233,16 @@ function acceptAll() {
 
 const KIND = { typo: '错别字', grammar: '病句', fact: '需核实', style: '表达' }
 
+// ---------- 风格优化 ----------
+
+/** 采用 AI 优化结果：替换标题和正文并直接保存（文章会退回待审核） */
+async function applyRestyle(v: { title: string; content: string }) {
+  restyleOpen.value = false
+  draft.title = v.title
+  draft.content = v.content
+  await save()
+}
+
 // ---------- 发布 ----------
 
 async function doPublish() {
@@ -312,6 +324,7 @@ onUnmounted(() => poll && clearInterval(poll))
         <span class="state" :class="active.status">{{ active.status === 'approved' ? '已审核通过' : '待审核' }}</span>
         <span v-if="dirty" class="muted">有未保存的修改</span>
         <span class="spacer" />
+        <button v-if="!usingMain" class="btn" @click="restyleOpen = true">✦ 风格优化</button>
         <button v-if="!usingMain" class="btn" :disabled="proofreading" @click="runProofread">
           {{ proofreading ? 'AI 校对中…' : '✦ AI 校对' }}
         </button>
@@ -472,5 +485,15 @@ onUnmounted(() => poll && clearInterval(poll))
     </div>
 
     <CoverMaker v-if="coverMaker" :title="draft.title" :size="coverSize" @close="coverMaker = false" @done="onCoverMade" />
+    <RestyleDialog
+      v-if="restyleOpen && active"
+      :post-id="active.id"
+      :scope="scope"
+      :scope-name="name(scope)"
+      :title="draft.title"
+      :dirty="dirty"
+      @close="restyleOpen = false"
+      @apply="applyRestyle"
+    />
   </section>
 </template>
